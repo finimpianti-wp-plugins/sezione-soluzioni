@@ -1,0 +1,539 @@
+/* Sezione Soluzioni
+ * Breakpoint come il sito di riferimento: tablet da 768px, desktop da 1200px. */
+
+.sds,
+.sds *,
+.sds *::before,
+.sds *::after {
+	box-sizing: border-box;
+}
+
+.sds {
+	width: 100%;
+	color: var(--sds-text);
+}
+
+/* ---------- Barra delle schede ---------- */
+
+.sds__nav {
+	z-index: 10;
+	width: 100%;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--sds-line);
+	background: var(--sds-bg);
+	scrollbar-width: none;
+}
+
+.sds__nav::-webkit-scrollbar {
+	display: none;
+}
+
+.sds--sticky .sds__nav {
+	position: sticky;
+	top: var(--sds-sticky-top, 0px);
+}
+
+.sds__tabs {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--sds-tab-gap-m, 16px);
+	width: max-content;
+	padding: 16px 0;
+}
+
+/* I selettori con "button" battono gli stili dei pulsanti di Hello Elementor */
+.sds button.sds__tab,
+.sds button.sds__tab:hover,
+.sds button.sds__tab:focus {
+	position: relative;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--sds-inactive);
+	font-family: var(--sds-font-tab);
+	font-size: var(--sds-fs-tab-m);
+	font-weight: var(--sds-w-tab);
+	line-height: 1.333;
+	letter-spacing: var(--sds-ls-tab-m);
+	text-transform: none;
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: color .15s cubic-bezier(.4, 0, .2, 1);
+}
+
+.sds button.sds__tab.is-active {
+	color: var(--sds-active);
+}
+
+.sds button.sds__tab:focus-visible {
+	outline: 2px solid var(--sds-active);
+	outline-offset: 4px;
+}
+
+/* Linea sotto la scheda attiva (posizionata e animata dallo script) */
+.sds__underline {
+	--sds-ul-h: 1px;
+	--sds-ul-gap: 2px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 1px;
+	height: var(--sds-ul-h);
+	background: var(--sds-active);
+	transform-origin: 0 0;
+	pointer-events: none;
+	opacity: 0;
+}
+
+.sds.is-ready .sds__underline {
+	opacity: 1;
+}
+
+/* Senza script: sottolineatura semplice */
+.sds:not(.is-ready) button.sds__tab.is-active {
+	text-decoration: underline;
+	text-underline-offset: .2em;
+}
+
+/* Testo che si mescola: lo span visibile si sovrappone a quello che tiene la larghezza */
+.sds__shuffle-wrap {
+	position: relative;
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.sds__shuffle-size {
+	visibility: hidden;
+}
+
+.sds__shuffle-live {
+	position: absolute;
+	inset: 0;
+}
+
+/* ---------- Pannello ---------- */
+
+.sds__panel {
+	display: flex;
+	flex-direction: column;
+	gap: 48px;
+	width: 100%;
+	padding-top: 32px;
+}
+
+.sds__panel[hidden] {
+	display: none;
+}
+
+/* Su mobile le due colonne "spariscono" e i blocchi si riordinano:
+   testo, immagine, dati+link, etichette */
+.sds__left,
+.sds__right {
+	display: contents;
+}
+
+.sds__text {
+	order: 1;
+	width: 100%;
+	padding-right: 24px;
+}
+
+.sds__media {
+	order: 2;
+}
+
+.sds__bottom {
+	order: 3;
+}
+
+.sds__tags {
+	order: 4;
+}
+
+.sds .sds__text {
+	max-width: var(--sds-text-max, none);
+	color: var(--sds-text);
+	font-family: var(--sds-font-text);
+	font-size: var(--sds-fs-text-m);
+	font-style: var(--sds-fst-text, normal);
+	font-weight: var(--sds-w-text);
+	line-height: var(--sds-lh-text-m);
+	letter-spacing: var(--sds-ls-text-m);
+	word-spacing: var(--sds-ws-text, 0px);
+	text-transform: var(--sds-tt-text, none);
+}
+
+.sds .sds__text p,
+.sds .sds__text strong,
+.sds .sds__text em,
+.sds .sds__text a {
+	color: inherit;
+	font-family: inherit;
+	font-size: inherit;
+	line-height: inherit;
+	letter-spacing: inherit;
+	word-spacing: inherit;
+	text-transform: inherit;
+}
+
+.sds .sds__text p {
+	margin: var(--sds-p-gap, 1em) 0 0;
+	padding: 0;
+	font-style: inherit;
+	font-weight: inherit;
+}
+
+.sds .sds__text p:first-child {
+	margin-top: 0;
+}
+
+/* Copia del testo divisa in lettere/parole, usata solo durante l'animazione.
+   Finita l'animazione si torna al testo originale, identico alle altre sezioni. */
+.sds__anim[hidden] {
+	display: none;
+}
+
+.sds__word {
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.sds__sr {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.sds__bottom {
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+	width: 100%;
+}
+
+.sds a.sds__link,
+.sds a.sds__link:hover,
+.sds a.sds__link:focus {
+	align-self: flex-start;
+	color: var(--sds-link);
+	font-family: var(--sds-font-link);
+	font-size: var(--sds-fs-link-m);
+	font-weight: var(--sds-w-link);
+	line-height: 1.2;
+	letter-spacing: var(--sds-ls-link, 0px);
+	text-decoration: var(--sds-link-deco, underline);
+	text-decoration-thickness: 1px;
+	text-underline-offset: .15em;
+	transition: opacity .2s ease;
+}
+
+.sds a.sds__link:hover {
+	opacity: .7;
+}
+
+/* ---------- Tabella dati ---------- */
+
+.sds__stats {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+}
+
+.sds__row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	width: 100%;
+}
+
+.sds__cell {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	height: 82px;
+	border-top: 1px solid var(--sds-line);
+	white-space: nowrap;
+}
+
+.sds__row.is-last .sds__cell {
+	border-bottom: 1px solid var(--sds-line);
+}
+
+.sds__bar {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	border-right: 2px solid var(--sds-line);
+	border-left: 1px solid var(--sds-line);
+	background: rgba(0, 0, 0, .012);
+	pointer-events: none;
+}
+
+.sds__meter-text {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	height: 100%;
+	padding: 8px;
+}
+
+.sds .sds__label {
+	color: var(--sds-line);
+	font-family: var(--sds-font-mono);
+	font-size: var(--sds-fs-label, 12px);
+	line-height: 2;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+}
+
+.sds .sds__value {
+	color: var(--sds-text);
+	font-family: var(--sds-font-text);
+	font-size: var(--sds-fs-value-m, 24px);
+	font-weight: var(--sds-w-text);
+	line-height: 40px;
+	letter-spacing: -0.8px;
+}
+
+/* ---------- Immagine / video ---------- */
+
+.sds__media {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+}
+
+.sds__wipe {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+
+.sds .sds__img {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	max-width: none;
+	height: 100%;
+	margin: 0;
+	border-radius: 0;
+	object-fit: cover;
+}
+
+/* ---------- Etichette ---------- */
+
+.sds__tags {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: none;
+}
+
+.sds__tags::-webkit-scrollbar {
+	display: none;
+}
+
+.sds__tag {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	height: 32px;
+	padding: 0 12px;
+	border: 1px solid var(--sds-line);
+	border-radius: 24px;
+	color: var(--sds-line);
+	font-family: var(--sds-font-mono);
+	font-size: var(--sds-fs-label, 12px);
+	line-height: 2;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+}
+
+.sds-vuoto {
+	padding: 12px 16px;
+	border: 1px dashed #c3c4c7;
+	font-size: 14px;
+}
+
+/* ---------- Tablet (da 768px) ---------- */
+
+@media (min-width: 768px) {
+	.sds__nav {
+		padding-top: 16px;
+	}
+
+	.sds__panel {
+		flex-direction: row;
+	}
+
+	.sds__left,
+	.sds__right {
+		display: flex;
+		flex: 1 1 0;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.sds__left {
+		gap: 48px;
+	}
+
+	.sds__right {
+		align-items: flex-end;
+		gap: 24px;
+	}
+
+	.sds__text,
+	.sds__media,
+	.sds__bottom,
+	.sds__tags {
+		order: 0;
+	}
+
+	.sds .sds__value {
+		font-size: var(--sds-fs-value-d, 32px);
+	}
+
+	.sds button.sds__tab,
+	.sds button.sds__tab:hover,
+	.sds button.sds__tab:focus {
+		font-size: var(--sds-fs-tab-t);
+	}
+
+	.sds .sds__text {
+		font-size: var(--sds-fs-text-t);
+	}
+
+	.sds a.sds__link,
+	.sds a.sds__link:hover,
+	.sds a.sds__link:focus {
+		font-size: var(--sds-fs-link-t);
+	}
+
+	.sds__media {
+		height: var(--sds-h-tab);
+		aspect-ratio: auto;
+	}
+
+	.sds__tags {
+		align-items: flex-start;
+		justify-content: flex-end;
+		overflow: hidden;
+	}
+}
+
+/* ---------- Desktop (da 1200px) ---------- */
+
+@media (min-width: 1200px) {
+	.sds__nav,
+	.sds--sticky .sds__nav {
+		position: static;
+		overflow: visible;
+		padding-top: 0;
+		border-bottom: 0;
+		background: transparent;
+	}
+
+	.sds__tabs {
+		gap: var(--sds-tab-gap-d, 48px);
+		width: 100%;
+		padding: 0 0 32px;
+	}
+
+	.sds button.sds__tab,
+	.sds button.sds__tab:hover,
+	.sds button.sds__tab:focus {
+		font-size: var(--sds-fs-tab-d);
+		line-height: 1.143;
+		letter-spacing: var(--sds-ls-tab-d);
+	}
+
+	.sds__underline {
+		--sds-ul-h: 3px;
+		--sds-ul-gap: 6px;
+	}
+
+	.sds__panel {
+		display: grid;
+		grid-template-columns: repeat(12, minmax(0, 1fr));
+		gap: 0;
+		padding-top: 0;
+		border-top: 1px solid var(--sds-line);
+	}
+
+	.sds__left {
+		grid-column: 1 / span 5;
+		justify-content: space-between;
+		gap: 0;
+		height: var(--sds-h);
+		padding-top: 64px;
+	}
+
+	.sds__right {
+		grid-column: 7 / span 6;
+		align-items: stretch;
+		gap: 0;
+	}
+
+	.sds__text {
+		padding-right: 0;
+	}
+
+	.sds .sds__text {
+		font-size: var(--sds-fs-text-d);
+		line-height: var(--sds-lh-text-d);
+		letter-spacing: var(--sds-ls-text-d);
+	}
+
+	.sds a.sds__link,
+	.sds a.sds__link:hover,
+	.sds a.sds__link:focus {
+		font-size: var(--sds-fs-link-d);
+	}
+
+	.sds__stats {
+		row-gap: 24px;
+	}
+
+	.sds__row {
+		grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+	}
+
+	.sds__cell {
+		border-bottom: 1px solid var(--sds-line);
+	}
+
+	.sds__media {
+		height: var(--sds-h);
+	}
+
+	.sds__tags {
+		justify-content: flex-end;
+		padding: 24px 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sds button.sds__tab {
+		transition: none;
+	}
+}

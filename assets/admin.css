@@ -1,0 +1,124 @@
+/* Sezione Soluzioni – pagina impostazioni */
+
+.sds-admin .sds-nav {
+	margin-bottom: 16px;
+}
+
+/* Con lo script attivo si vede una sola scheda del menu alla volta */
+.sds-admin.is-js .sds-page {
+	display: none;
+}
+
+.sds-admin.is-js .sds-page.is-active {
+	display: block;
+}
+
+.sds-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px 24px;
+	max-width: 1100px;
+}
+
+.sds-toolbar p {
+	margin: 0 0 10px;
+}
+
+/* Riquadri richiudibili */
+.sds-box,
+.sds-savebar {
+	box-sizing: border-box;
+}
+
+.sds-box {
+	max-width: 1100px;
+	margin: 0 0 10px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.sds-box > summary {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	padding: 12px 16px;
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+}
+
+.sds-box > summary::-webkit-details-marker {
+	display: none;
+}
+
+.sds-box > summary::before {
+	content: "\f139"; /* dashicons-arrow-right */
+	align-self: center;
+	font: normal 18px/1 dashicons;
+	color: #787c82;
+	transition: transform .15s ease;
+}
+
+.sds-box[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.sds-box > summary:hover {
+	background: #f6f7f7;
+}
+
+.sds-box-title {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.sds-box-sub {
+	color: #787c82;
+}
+
+.sds-box[open] > summary {
+	border-bottom: 1px solid #dcdcde;
+}
+
+.sds-box-body {
+	padding: 4px 16px 8px;
+}
+
+.sds-box-body > .description {
+	margin-top: 12px;
+}
+
+.sds-box .form-table th {
+	width: 260px;
+	padding: 12px 10px 12px 0;
+}
+
+.sds-box .form-table td {
+	padding: 10px;
+}
+
+.sds-default {
+	margin-left: 6px;
+	color: #a7aaad;
+	font-size: 12px;
+}
+
+/* Barra di salvataggio sempre visibile in basso */
+.sds-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	max-width: 1100px;
+	margin-top: 16px;
+	padding: 12px 16px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px 4px 0 0;
+	background: #fff;
+	box-shadow: 0 -4px 12px rgba(0, 0, 0, .06);
+}
