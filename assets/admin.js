@@ -91,4 +91,42 @@ jQuery(function ($) {
 		$cell.find('.sds-media-preview').empty();
 		$(this).hide();
 	});
+
+	/* Lingua dei contenuti (con Elementor Page Translator) */
+	function showLingua(codice) {
+		$wrap.find('.sds-lingua-btn').each(function () {
+			$(this).toggleClass('is-active', String($(this).data('sds-lingua')) === codice);
+		});
+		$wrap.find('.sds-lingua-blocco').each(function () {
+			$(this).toggleClass('is-active', String($(this).data('sds-lingua')) === codice);
+		});
+		state.lingua = codice;
+		save(state);
+	}
+	if ($wrap.find('.sds-lingua-btn').length) {
+		$wrap.on('click', '.sds-lingua-btn', function () { showLingua(String($(this).data('sds-lingua'))); });
+		if (state.lingua && $wrap.find('.sds-lingua-blocco[data-sds-lingua="' + state.lingua + '"]').length) showLingua(state.lingua);
+	}
+
+	/* Copia i contenuti italiani nei campi di un'altra lingua (immagini comprese) */
+	$wrap.on('click', '.sds-copia-it', function () {
+		var $dest = $(this).closest('.sds-lingua-blocco');
+		var codice = String($dest.data('sds-lingua'));
+		var pieno = $dest.find('input[type="text"], input[type="url"], textarea').filter(function () { return this.value.trim() !== ''; }).length;
+		if (pieno && !window.confirm('I campi già compilati in questa lingua verranno sostituiti. Continuare?')) return;
+		var $src = $wrap.find('.sds-lingua-blocco[data-sds-lingua=""]');
+		var da = '[schede]', a = '[schede_lingue][' + codice + ']';
+		$src.find('input, textarea').each(function () {
+			if (!this.name) return;
+			var $t = $dest.find('[name="' + this.name.replace(da, a) + '"]');
+			if (!$t.length) return;
+			if (this.type === 'checkbox') $t.prop('checked', this.checked);
+			else $t.val(this.value).trigger('input');
+		});
+		$src.find('.sds-media').each(function (i) {
+			var $d = $dest.find('.sds-media').eq(i);
+			$d.find('.sds-media-preview').html($(this).find('.sds-media-preview').html());
+			$d.find('.sds-media-remove').toggle($(this).find('.sds-media-id').val() !== '0');
+		});
+	});
 });

@@ -122,3 +122,9 @@
 	background: #fff;
 	box-shadow: 0 -4px 12px rgba(0, 0, 0, .06);
 }
+
+/* Lingua dei contenuti (con Elementor Page Translator) */
+.sds-lingue { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.sds-lingua-btn.is-active { background: #2271b1; border-color: #2271b1; color: #fff; }
+.sds-admin.is-js .sds-lingua-blocco { display: none; }
+.sds-admin.is-js .sds-lingua-blocco.is-active { display: block; }

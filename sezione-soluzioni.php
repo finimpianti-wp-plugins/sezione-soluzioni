@@ -2,7 +2,8 @@
 /**
  * Plugin Name:       Sezione Soluzioni
  * Description:       Sezione a schede animate (fino a 5) con testo, link, immagine o video, dati ed etichette, da inserire con lo shortcode [sezione_soluzioni]. Contenuti e stile in Bacheca → Sezione Soluzioni.
- * Version:           1.1.0
+ * Version:           1.2.0
+ * Domain Path:       /languages
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Update URI:        false
@@ -12,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SDS_VERSION', '1.1.0' );
+define( 'SDS_VERSION', '1.2.0' );
 define( 'SDS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SDS_OPTION', 'sds_impostazioni' );
 define( 'SDS_SHORTCODE', 'sezione_soluzioni' );
@@ -193,15 +194,84 @@ function sds_get_options() {
 		}
 	}
 
-	$o = wp_parse_args( $saved, sds_defaults() );
+	$o           = wp_parse_args( $saved, sds_defaults() );
+	$o['schede'] = sds_normalize_schede( $o['schede'] );
+	$lingue      = array();
+	foreach ( (array) ( isset( $o['schede_lingue'] ) ? $o['schede_lingue'] : array() ) as $lingua => $schede ) {
+		$lingue[ (string) $lingua ] = sds_normalize_schede( $schede );
+	}
+	$o['schede_lingue'] = $lingue;
+	return $o;
+}
+
+/** Completa le schede con i valori vuoti mancanti. */
+function sds_normalize_schede( $schede ) {
+	$schede = is_array( $schede ) ? $schede : array();
+	$out    = array();
 	for ( $i = 0; $i < SDS_MAX_SCHEDE; $i++ ) {
-		$tab = wp_parse_args( isset( $o['schede'][ $i ] ) ? (array) $o['schede'][ $i ] : array(), sds_empty_tab() );
+		$tab = wp_parse_args( isset( $schede[ $i ] ) ? (array) $schede[ $i ] : array(), sds_empty_tab() );
 		for ( $r = 0; $r < SDS_MAX_DATI; $r++ ) {
 			$tab['dati'][ $r ] = wp_parse_args( isset( $tab['dati'][ $r ] ) ? (array) $tab['dati'][ $r ] : array(), sds_empty_row() );
 		}
-		$o['schede'][ $i ] = $tab;
+		$out[ $i ] = $tab;
 	}
-	return $o;
+	return $out;
+}
+
+/* -------------------------------------------------------------------------
+ * Lingue (facoltativo, con "Elementor Page Translator")
+ * Senza il traduttore il plugin funziona come prima: solo i contenuti italiani.
+ * ---------------------------------------------------------------------- */
+
+add_action( 'init', function () {
+	load_plugin_textdomain( 'sezione-soluzioni', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+} );
+
+/** Lingue diverse da quella predefinita: [ codice => nome ]. */
+function sds_lingue() {
+	if ( ! function_exists( 'ept_languages' ) || ! function_exists( 'ept_default_language' ) ) {
+		return array();
+	}
+	$out = array();
+	foreach ( ept_languages() as $codice => $lingua ) {
+		if ( ept_default_language() !== $codice ) {
+			$out[ (string) $codice ] = (string) $lingua['name'];
+		}
+	}
+	return $out;
+}
+
+/** Nome della lingua predefinita. */
+function sds_nome_lingua_predefinita() {
+	if ( function_exists( 'ept_languages' ) && function_exists( 'ept_default_language' ) ) {
+		$lingue = ept_languages();
+		return (string) ( $lingue[ ept_default_language() ]['name'] ?? 'Italiano' );
+	}
+	return 'Italiano';
+}
+
+/** Schede compilate (con titolo). */
+function sds_schede_compilate( $schede ) {
+	return array_values( array_filter( (array) $schede, function ( $t ) {
+		return '' !== $t['titolo'];
+	} ) );
+}
+
+/**
+ * Schede da mostrare: quelle della lingua della pagina; se in quella lingua non ce
+ * n'è nessuna compilata, quelle italiane.
+ */
+function sds_schede_correnti( $o ) {
+	if ( function_exists( 'ept_current_language' ) && function_exists( 'ept_default_language' ) ) {
+		$lingua = ept_current_language();
+		if ( ept_default_language() !== $lingua && ! empty( $o['schede_lingue'][ $lingua ] ) ) {
+			$tabs = sds_schede_compilate( $o['schede_lingue'][ $lingua ] );
+			if ( $tabs ) {
+				return $tabs;
+			}
+		}
+	}
+	return sds_schede_compilate( $o['schede'] );
 }
 
 function sds_sanitize_value( $f, $v ) {
@@ -231,9 +301,31 @@ function sds_sanitize( $input ) {
 		$clean[ $key ] = sds_sanitize_value( $f, isset( $input[ $key ] ) ? $input[ $key ] : '' );
 	}
 
-	$clean['schede'] = array();
+	$clean['schede'] = sds_sanitize_schede( isset( $input['schede'] ) ? $input['schede'] : array() );
+
+	// Contenuti nelle altre lingue. Se il form non li contiene (traduttore non attivo)
+	// restano quelli salvati.
+	if ( isset( $input['schede_lingue'] ) && is_array( $input['schede_lingue'] ) ) {
+		$clean['schede_lingue'] = array();
+		foreach ( $input['schede_lingue'] as $lingua => $schede ) {
+			$lingua = sanitize_key( (string) $lingua );
+			if ( '' !== $lingua ) {
+				$clean['schede_lingue'][ $lingua ] = sds_sanitize_schede( $schede );
+			}
+		}
+	} else {
+		$saved                  = get_option( SDS_OPTION, array() );
+		$clean['schede_lingue'] = is_array( $saved ) && isset( $saved['schede_lingue'] ) && is_array( $saved['schede_lingue'] ) ? $saved['schede_lingue'] : array();
+	}
+	return $clean;
+}
+
+/** Sanifica le schede di una lingua. */
+function sds_sanitize_schede( $input_schede ) {
+	$input_schede = is_array( $input_schede ) ? $input_schede : array();
+	$schede       = array();
 	for ( $i = 0; $i < SDS_MAX_SCHEDE; $i++ ) {
-		$t    = isset( $input['schede'][ $i ] ) ? (array) $input['schede'][ $i ] : array();
+		$t    = isset( $input_schede[ $i ] ) ? (array) $input_schede[ $i ] : array();
 		$get  = function ( $k ) use ( $t ) {
 			return isset( $t[ $k ] ) ? $t[ $k ] : '';
 		};
@@ -248,7 +340,7 @@ function sds_sanitize( $input ) {
 				'barra'      => max( 0, min( 100, (int) ( isset( $row['barra'] ) ? $row['barra'] : 0 ) ) ),
 			);
 		}
-		$clean['schede'][] = array(
+		$schede[] = array(
 			'titolo'       => sanitize_text_field( $get( 'titolo' ) ),
 			'testo'        => wp_kses_post( $get( 'testo' ) ),
 			'link_testo'   => sanitize_text_field( $get( 'link_testo' ) ),
@@ -259,7 +351,7 @@ function sds_sanitize( $input ) {
 			'dati'         => $dati,
 		);
 	}
-	return $clean;
+	return $schede;
 }
 
 /** Variabili CSS generate dalle impostazioni. */
@@ -381,8 +473,9 @@ function sds_media_preview_html( $id ) {
 	return $url ? '<img src="' . esc_url( $url ) . '" style="max-width:240px;height:auto;display:block">' : '';
 }
 
-function sds_render_tab_fields( $i, $tab ) {
-	$base     = SDS_OPTION . '[schede][' . $i . ']';
+function sds_render_tab_fields( $i, $tab, $lingua = '' ) {
+	$base     = '' === $lingua ? SDS_OPTION . '[schede][' . $i . ']' : SDS_OPTION . '[schede_lingue][' . $lingua . '][' . $i . ']';
+	$pid      = '' === $lingua ? 'sds_t' . $i : 'sds_' . $lingua . '_t' . $i; // id univoci per lingua
 	$preview  = sds_media_preview_html( $tab['immagine'] );
 	$has_dati = false;
 	foreach ( $tab['dati'] as $row ) {
@@ -391,7 +484,7 @@ function sds_render_tab_fields( $i, $tab ) {
 		}
 	}
 	?>
-	<details class="sds-box" data-sds-box="scheda-<?php echo (int) $i; ?>">
+	<details class="sds-box" data-sds-box="scheda-<?php echo esc_attr( ( '' === $lingua ? '' : $lingua . '-' ) . $i ); ?>">
 		<summary>
 			<span class="sds-box-title">Scheda <?php echo (int) ( $i + 1 ); ?></span>
 			<span class="sds-box-sub" data-empty="vuota, non viene mostrata"><?php echo esc_html( $tab['titolo'] ? $tab['titolo'] : 'vuota, non viene mostrata' ); ?></span>
@@ -399,20 +492,20 @@ function sds_render_tab_fields( $i, $tab ) {
 		<div class="sds-box-body">
 			<table class="form-table" role="presentation">
 				<tr>
-					<th><label for="sds_t<?php echo (int) $i; ?>_titolo">Titolo della scheda</label></th>
-					<td><input type="text" class="regular-text sds-tab-title" id="sds_t<?php echo (int) $i; ?>_titolo" name="<?php echo esc_attr( $base ); ?>[titolo]" value="<?php echo esc_attr( $tab['titolo'] ); ?>" placeholder="es. Primo Impianto"></td>
+					<th><label for="<?php echo esc_attr( $pid ); ?>_titolo">Titolo della scheda</label></th>
+					<td><input type="text" class="regular-text sds-tab-title" id="<?php echo esc_attr( $pid ); ?>_titolo" name="<?php echo esc_attr( $base ); ?>[titolo]" value="<?php echo esc_attr( $tab['titolo'] ); ?>" placeholder="es. Primo Impianto"></td>
 				</tr>
 				<tr>
-					<th><label for="sds_t<?php echo (int) $i; ?>_testo">Testo</label></th>
+					<th><label for="<?php echo esc_attr( $pid ); ?>_testo">Testo</label></th>
 					<td>
-						<textarea class="large-text" rows="5" id="sds_t<?php echo (int) $i; ?>_testo" name="<?php echo esc_attr( $base ); ?>[testo]"><?php echo esc_textarea( $tab['testo'] ); ?></textarea>
+						<textarea class="large-text" rows="5" id="<?php echo esc_attr( $pid ); ?>_testo" name="<?php echo esc_attr( $base ); ?>[testo]"><?php echo esc_textarea( $tab['testo'] ); ?></textarea>
 						<p class="description">Una riga vuota crea un nuovo paragrafo.</p>
 					</td>
 				</tr>
 				<tr>
-					<th><label for="sds_t<?php echo (int) $i; ?>_lt">Link</label></th>
+					<th><label for="<?php echo esc_attr( $pid ); ?>_lt">Link</label></th>
 					<td>
-						<input type="text" id="sds_t<?php echo (int) $i; ?>_lt" name="<?php echo esc_attr( $base ); ?>[link_testo]" value="<?php echo esc_attr( $tab['link_testo'] ); ?>" placeholder="Testo, es. Scopri di più">
+						<input type="text" id="<?php echo esc_attr( $pid ); ?>_lt" name="<?php echo esc_attr( $base ); ?>[link_testo]" value="<?php echo esc_attr( $tab['link_testo'] ); ?>" placeholder="Testo, es. Scopri di più">
 						<input type="url" class="regular-text" name="<?php echo esc_attr( $base ); ?>[link_url]" value="<?php echo esc_attr( $tab['link_url'] ); ?>" placeholder="https://…">
 						<label><input type="checkbox" name="<?php echo esc_attr( $base ); ?>[nuova_scheda]" value="1" <?php checked( $tab['nuova_scheda'], 1 ); ?>> Apri in una nuova scheda</label>
 					</td>
@@ -428,9 +521,9 @@ function sds_render_tab_fields( $i, $tab ) {
 					</td>
 				</tr>
 				<tr>
-					<th><label for="sds_t<?php echo (int) $i; ?>_tag">Etichette</label></th>
+					<th><label for="<?php echo esc_attr( $pid ); ?>_tag">Etichette</label></th>
 					<td>
-						<input type="text" class="large-text" id="sds_t<?php echo (int) $i; ?>_tag" name="<?php echo esc_attr( $base ); ?>[etichette]" value="<?php echo esc_attr( $tab['etichette'] ); ?>" placeholder="es. Pistoni, Cilindri, Bielle">
+						<input type="text" class="large-text" id="<?php echo esc_attr( $pid ); ?>_tag" name="<?php echo esc_attr( $base ); ?>[etichette]" value="<?php echo esc_attr( $tab['etichette'] ); ?>" placeholder="es. Pistoni, Cilindri, Bielle">
 						<p class="description">Facoltative. Separate da virgola, compaiono come piccoli bollini sotto l'immagine.</p>
 					</td>
 				</tr>
@@ -489,11 +582,36 @@ function sds_render_admin_page() {
 					<p>Fino a <?php echo (int) SDS_MAX_SCHEDE; ?> schede, mostrate in quest'ordine. Le schede senza titolo non vengono mostrate.</p>
 					<p><button type="button" class="button-link sds-open-all">Apri tutte</button> · <button type="button" class="button-link sds-close-all">Chiudi tutte</button></p>
 				</div>
-				<?php
-				foreach ( $o['schede'] as $i => $tab ) {
-					sds_render_tab_fields( $i, $tab );
-				}
-				?>
+				<?php $lingue = sds_lingue(); ?>
+				<?php if ( $lingue ) : ?>
+					<div class="sds-lingue" role="group" aria-label="Lingua dei contenuti">
+						<button type="button" class="button sds-lingua-btn is-active" data-sds-lingua=""><?php echo esc_html( sds_nome_lingua_predefinita() ); ?></button>
+						<?php foreach ( $lingue as $codice => $nome ) : ?>
+							<button type="button" class="button sds-lingua-btn" data-sds-lingua="<?php echo esc_attr( $codice ); ?>"><?php echo esc_html( $nome ); ?></button>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+				<div class="sds-lingua-blocco is-active" data-sds-lingua="">
+					<?php
+					foreach ( $o['schede'] as $i => $tab ) {
+						sds_render_tab_fields( $i, $tab );
+					}
+					?>
+				</div>
+				<?php foreach ( $lingue as $codice => $nome ) : ?>
+					<div class="sds-lingua-blocco" data-sds-lingua="<?php echo esc_attr( $codice ); ?>">
+						<p class="description">
+							Contenuti mostrati sulle pagine in <?php echo esc_html( $nome ); ?>. Se qui non compili nessuna scheda, in questa lingua vengono mostrate quelle italiane.
+							<button type="button" class="button-link sds-copia-it">Copia i contenuti italiani da tradurre</button>
+						</p>
+						<?php
+						$schede_lingua = isset( $o['schede_lingue'][ $codice ] ) ? $o['schede_lingue'][ $codice ] : sds_normalize_schede( array() );
+						foreach ( $schede_lingua as $i => $tab ) {
+							sds_render_tab_fields( $i, $tab, $codice );
+						}
+						?>
+					</div>
+				<?php endforeach; ?>
 			</div>
 
 			<?php foreach ( sds_style_pages() as $page_id => $page ) : ?>
@@ -634,13 +752,11 @@ function sds_media_html( $id ) {
 function sds_shortcode() {
 	static $instance = 0;
 	$o    = sds_get_options();
-	$tabs = array_values( array_filter( $o['schede'], function ( $t ) {
-		return '' !== $t['titolo'];
-	} ) );
+	$tabs = sds_schede_correnti( $o );
 
 	if ( ! $tabs ) {
 		return current_user_can( 'edit_posts' )
-			? '<p class="sds-vuoto">Sezione Soluzioni: nessuna scheda compilata. Vai in Bacheca → Sezione Soluzioni. (Messaggio visibile solo agli amministratori.)</p>'
+			? '<p class="sds-vuoto">' . esc_html__( 'Sezione Soluzioni: nessuna scheda compilata. Vai in Bacheca → Sezione Soluzioni. (Messaggio visibile solo agli amministratori.)', 'sezione-soluzioni' ) . '</p>'
 			: '';
 	}
 
