@@ -6,7 +6,7 @@
  * Domain Path:       /languages
  * Requires at least: 5.8
  * Requires PHP:      7.4
- * Update URI:        https://github.com/apgr01/sezione-soluzioni
+ * Update URI:        https://github.com/finimpianti-wp-plugins/sezione-soluzioni
  * Text Domain:       sezione-soluzioni
  * License:           GPL-2.0-or-later
  */
@@ -862,7 +862,7 @@ function sds_shortcode() {
 // SDS_UPDATE_REPO in wp-config.php; APGR_GITHUB_TOKEN (facoltativo) serve solo per repository
 // privati o per superare i limiti di richieste di GitHub.
 if ( ! defined( 'SDS_UPDATE_REPO' ) ) {
-	define( 'SDS_UPDATE_REPO', 'https://github.com/apgr01/sezione-soluzioni/' );
+	define( 'SDS_UPDATE_REPO', 'https://github.com/finimpianti-wp-plugins/sezione-soluzioni/' );
 }
 require_once __DIR__ . '/lib/plugin-update-checker/plugin-update-checker.php';
 $sds_aggiornamenti = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker( SDS_UPDATE_REPO, __FILE__, 'sezione-soluzioni' );
