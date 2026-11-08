@@ -2,18 +2,18 @@
 /**
  * Plugin Name:       Sezione Soluzioni
  * Description:       Sezione a schede animate (fino a 5) con testo, link, immagine o video, dati ed etichette, da inserire con lo shortcode [sezione_soluzioni]. Contenuti e stile in Bacheca → Sezione Soluzioni.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Domain Path:       /languages
  * Requires at least: 5.8
  * Requires PHP:      7.4
- * Update URI:        false
+ * Update URI:        https://github.com/apgr01/sezione-soluzioni
  * Text Domain:       sezione-soluzioni
  * License:           GPL-2.0-or-later
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'SDS_VERSION', '1.2.0' );
+define( 'SDS_VERSION', '1.3.0' );
 define( 'SDS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SDS_OPTION', 'sds_impostazioni' );
 define( 'SDS_SHORTCODE', 'sezione_soluzioni' );
@@ -855,4 +855,18 @@ function sds_shortcode() {
 	</div>
 	<?php
 	return ob_get_clean();
+}
+
+// Aggiornamenti da GitHub: ogni release del repository (con lo zip del plugin) compare in
+// Bacheca -> Aggiornamenti e si installa con un clic. Il repository si può cambiare definendo
+// SDS_UPDATE_REPO in wp-config.php; APGR_GITHUB_TOKEN (facoltativo) serve solo per repository
+// privati o per superare i limiti di richieste di GitHub.
+if ( ! defined( 'SDS_UPDATE_REPO' ) ) {
+	define( 'SDS_UPDATE_REPO', 'https://github.com/apgr01/sezione-soluzioni/' );
+}
+require_once __DIR__ . '/lib/plugin-update-checker/plugin-update-checker.php';
+$sds_aggiornamenti = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker( SDS_UPDATE_REPO, __FILE__, 'sezione-soluzioni' );
+$sds_aggiornamenti->getVcsApi()->enableReleaseAssets( '/^sezione\-soluzioni-[0-9][0-9.]*\.zip$/' );
+if ( defined( 'APGR_GITHUB_TOKEN' ) && APGR_GITHUB_TOKEN ) {
+	$sds_aggiornamenti->setAuthentication( APGR_GITHUB_TOKEN );
 }
